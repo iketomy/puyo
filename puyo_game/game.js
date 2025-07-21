@@ -511,7 +511,7 @@ document.addEventListener('keydown', (e) => {
             gameState = 'paused';
             // stopSound('bgm'); // ポーズ時にBGM停止
         } else if (gameState === 'paused') {
-            gameState = 'playing'; // 修正: 閉じクォーテーションを追加
+            gameState = 'playing';
             // playSound('bgm'); // ポーズ解除時にBGM再開
         }
         updateOverlayVisibility(); // ポーズ状態変更時にオーバーレイを更新

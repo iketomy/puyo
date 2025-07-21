@@ -1,0 +1,135 @@
+body {
+    font-family: 'Press Start 2P', cursive; /* レトロゲーム風フォント */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #2c3e50; /* ダークな背景色 */
+    color: #ecf0f1; /* 明るい文字色 */
+    margin: 0;
+    padding: 20px;
+    overflow: hidden; /* スクロールバーが出ないように */
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+h1 {
+    color: #f1c40f; /* 目立つタイトル色 */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 20px;
+}
+
+#game-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 40px; /* 要素間の間隔を広げる */
+    background-color: #34495e; /* コンテナの背景色 */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+#canvas-wrapper {
+    position: relative;
+    border: 5px solid #f1c40f; /* ゲームフィールドの枠を強調 */
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#game-canvas {
+    background-color: #1a252f; /* ゲームフィールドの背景 */
+    display: block;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 28px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.overlay-text {
+    font-size: 1.2em;
+    margin-bottom: 15px;
+}
+
+#info {
+    text-align: center; /* 中央揃え */
+    width: 180px; /* 幅を少し広げる */
+    padding: 15px;
+    background-color: #2c3e50;
+    border-radius: 8px;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+#info h2 {
+    color: #3498db; /* 情報セクションのタイトル色 */
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+#info p {
+    margin-bottom: 8px;
+    font-size: 0.9em;
+}
+
+#next-puyo-area {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #4a627a;
+}
+
+#next-canvas {
+    border: 2px solid #3498db;
+    background-color: #1a252f;
+    border-radius: 5px;
+}
+
+#score {
+    font-size: 2.5em;
+    color: #e74c3c; /* スコアの強調色 */
+    font-weight: bold;
+    margin-top: 5px;
+    margin-bottom: 20px;
+}
+
+#restart-button {
+    position: absolute;
+    top: 70%; /* GAME OVERテキストと重ならないように調整 */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 15px 30px;
+    font-size: 1.2em;
+    cursor: pointer;
+    border: none;
+    background-color: #27ae60; /* ボタンの色 */
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px #1e8449;
+    transition: all 0.1s ease;
+}
+
+#restart-button:active {
+    transform: translate(-50%, -50%) translateY(2px);
+    box-shadow: 0 2px #1e8449;
+}
+
+.hidden {
+    display: none;
+}
+
+#high-score-display {
+    font-size: 1.1em !important; /* !important で上書き */
+    color: #f39c12; /* ハイスコアの強調色 */
+    margin-top: 10px !important;
+}

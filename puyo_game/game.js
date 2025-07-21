@@ -83,6 +83,7 @@ function createPuyoPair() {
 }
 
 function initGame() {
+    console.log('initGame called.');
     for (let r = 0; r < ROWS; r++) field[r] = Array(COLS).fill(0);
     score = 0;
     scoreElement.textContent = score;
@@ -90,11 +91,14 @@ function initGame() {
     
     nextPuyo = createPuyoPair();
     spawnPuyo();
+    console.log('initGame finished. currentPuyo after spawn:', currentPuyo);
 }
 
 function startGame() {
+    console.log('startGame called. Current gameState:', gameState);
     initGame();
     gameState = 'playing';
+    console.log('gameState set to playing. currentPuyo:', currentPuyo);
     updateOverlayVisibility();
     // playSound('bgm'); // ゲーム開始時にBGM再生
     // gameLoopはDOMContentLoadedで既に開始されているため、ここでは呼び出さない
@@ -107,10 +111,12 @@ function spawnPuyo() {
     drawNextPuyo();
     if (checkCollision(currentPuyo, 0, 0)) {
         gameState = 'gameover';
-        console.log('spawnPuyo: Game Over on spawn!');
+        console.log('spawnPuyo: Game Over on spawn! Setting gameState to gameover.');
         // playSound('gameover');
         // stopSound('bgm'); // ゲームオーバー時にBGM停止
         saveHighScore();
+    } else {
+        console.log('spawnPuyo: No immediate collision. Game should proceed.');
     }
 }
 
@@ -263,7 +269,9 @@ function gameLoop() {
         }
     } else if (gameState === 'gameover') {
         drawGameOver();
-    } 
+    } else {
+        console.log('gameLoop: Not in playing state or currentPuyo is null. gameState:', gameState, 'currentPuyo:', currentPuyo);
+    }
 
     // 次のフレームを要求
     gameLoop.animationFrameId = requestAnimationFrame(gameLoop);

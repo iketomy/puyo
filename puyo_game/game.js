@@ -7,6 +7,7 @@ const restartButton = document.getElementById('restart-button');
 const startScreen = document.getElementById('start-screen');
 const pauseScreen = document.getElementById('pause-screen');
 const chainBonusElement = document.getElementById('chain-bonus'); // 追加
+const versionDisplayElement = document.getElementById('version-display'); // 追加
 
 const COLS = 6;
 const ROWS = 12;
@@ -455,6 +456,9 @@ function updateOverlayVisibility() {
     if (gameState === 'start') {
         startScreen.classList.remove('hidden');
         updateStartScreenContent(); // スタート画面の内容を更新
+        if (versionDisplayElement) { // 追加
+            versionDisplayElement.textContent = "Visual Enhancements v2.0"; // 追加
+        }
     } else if (gameState === 'paused') {
         pauseScreen.classList.remove('hidden');
     } else if (gameState === 'gameover') {

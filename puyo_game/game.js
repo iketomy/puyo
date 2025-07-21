@@ -327,13 +327,13 @@ function drawPuyo(ctx, x, y, colorIndex, size, alpha = 1.0) { // alpha引数を�
 
 function drawChainText() {
     if (chainAnimation.timer > 0) {
-        context.font = 'bold 48px sans-serif';
+        context.font = 'bold 48px "Press Start 2P" '; // フォントをレトロゲーム風に
         context.textAlign = 'center';
-        context.fillStyle = '#ffc107';
-        context.strokeStyle = 'black';
-        context.lineWidth = 4;
+        context.fillStyle = `rgba(255, 193, 7, ${chainAnimation.timer / 90})`; // フェードアウト
+        context.strokeStyle = `rgba(0, 0, 0, ${chainAnimation.timer / 90})`;
+        context.lineWidth = 6; // 線を太く
         const x = canvas.width / 2, y = canvas.height / 2;
-        const scale = 1 + Math.sin(Math.PI * (1 - chainAnimation.timer / 90)) * 0.2;
+        const scale = 1 + Math.sin(Math.PI * (1 - chainAnimation.timer / 90)) * 0.5; // 拡大率を大きく
         context.save();
         context.translate(x, y);
         context.scale(scale, scale);

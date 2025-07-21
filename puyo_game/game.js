@@ -164,8 +164,8 @@ async function handleChains() {
 
             // Activate screen pulse
             screenPulse.active = true;
-            screenPulse.alpha = 0.6; // Start with a noticeable pulse
-            screenPulse.color = 'rgba(255, 255, 0, 0.6)'; // Bright yellow pulse
+            screenPulse.alpha = 1.0; // Start with full opacity
+            screenPulse.color = 'rgba(255, 100, 0, 0.8)'; // More intense orange-red pulse
 
             // Activate explosion effect
             let avgX = 0, avgY = 0;
@@ -180,9 +180,9 @@ async function handleChains() {
             explosionEffect.x = avgX;
             explosionEffect.y = avgY;
             explosionEffect.radius = 0;
-            explosionEffect.maxRadius = Math.max(canvas.width, canvas.height) * 0.7; // Cover most of the screen
+            explosionEffect.maxRadius = Math.max(canvas.width, canvas.height) * 1.2; // Ensure it covers the whole screen
             explosionEffect.alpha = 1.0;
-            explosionEffect.color = 'rgba(255, 165, 0, 1)'; // Bright orange explosion
+            explosionEffect.color = 'rgba(255, 60, 0, 1)'; // Fiery red-orange explosion
             
             chainAnimation.timer = 120; // Increase animation duration for more dramatic effect
 
@@ -309,7 +309,7 @@ function draw() {
         context.fillRect(0, 0, canvas.width, canvas.height);
         context.restore();
 
-        screenPulse.alpha -= 0.03; // Fade out faster
+        screenPulse.alpha -= 0.02; // Fade out slower (lasts 50 frames)
         if (screenPulse.alpha <= 0) {
             screenPulse.active = false;
         }
@@ -325,8 +325,8 @@ function draw() {
         context.fill();
         context.restore();
 
-        explosionEffect.radius += 15; // Expand faster
-        explosionEffect.alpha -= 0.02; // Fade out slower than radius expands
+        explosionEffect.radius += 25; // Expand much faster
+        explosionEffect.alpha -= 0.015; // Fade out slower than radius expands (lasts ~66 frames)
         if (explosionEffect.alpha <= 0 || explosionEffect.radius > explosionEffect.maxRadius) {
             explosionEffect.active = false;
         }

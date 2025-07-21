@@ -6,6 +6,7 @@ const scoreElement = document.getElementById('score');
 const restartButton = document.getElementById('restart-button');
 const startScreen = document.getElementById('start-screen');
 const pauseScreen = document.getElementById('pause-screen');
+const chainBonusElement = document.getElementById('chain-bonus'); // 追加
 
 const COLS = 6;
 const ROWS = 12;
@@ -80,6 +81,7 @@ function initGame() {
     for (let r = 0; r < ROWS; r++) field[r] = Array(COLS).fill(0);
     score = 0;
     scoreElement.textContent = score;
+    chainBonusElement.classList.add('hidden'); // 追加
     
     nextPuyo = createPuyoPair();
     spawnPuyo();
@@ -137,11 +139,20 @@ async function handleChains() {
         const chainBonus = Math.pow(2, chainCount);
         score += puyosToClear.length * 10 * chainBonus;
         scoreElement.textContent = score;
+        
+        // 連鎖ボーナス表示のロジックを追加
         if (chainCount > 1) {
-            chainAnimation.text = `${chainCount} CHAIN!`;
-            chainAnimation.timer = 90;
+            chainBonusElement.textContent = `${chainCount} CHAIN! x${chainBonus}`;
+            chainBonusElement.classList.remove('hidden');
+            setTimeout(() => {
+                chainBonusElement.classList.add('hidden');
+            }, 1500); // 1.5秒後に非表示
             // playSound('chain');
-        } else { /* playSound('clear'); */ }
+        } else { 
+            chainBonusElement.classList.add('hidden'); // 1連鎖の場合は非表示を維持
+            /* playSound('clear'); */ 
+        }
+
         clearPuyos(puyosToClear);
         draw(); await sleep(300);
         applyGravity();

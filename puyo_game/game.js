@@ -62,7 +62,8 @@ let dropInterval = 30;
 let chainAnimation = { text: '', timer: 0 };
 
 let puyosFading = []; // 消去中のぷよを管理する配列
-let flashEffect = { active: false, alpha: 0 }; // フラッシュ効果
+let screenPulse = { active: false, alpha: 0, color: 'rgba(255, 255, 0, 0)' }; // 画面フラッシュ効果
+let explosionEffect = { active: false, x: 0, y: 0, radius: 0, maxRadius: 0, alpha: 0, color: 'rgba(255, 165, 0, 0)' }; // 爆発効果
 
 function loadHighScore() {
     const savedScore = localStorage.getItem('puyoHighScore');
@@ -161,9 +162,28 @@ async function handleChains() {
                 chainBonusElement.classList.add('hidden');
             }, 1500); // 1.5秒後に非表示
 
-            // Activate flash effect
-            flashEffect.active = true;
-            flashEffect.alpha = 0.8; // Start with a strong flash
+            // Activate screen pulse
+            screenPulse.active = true;
+            screenPulse.alpha = 0.6; // Start with a noticeable pulse
+            screenPulse.color = 'rgba(255, 255, 0, 0.6)'; // Bright yellow pulse
+
+            // Activate explosion effect
+            let avgX = 0, avgY = 0;
+            puyosToClear.forEach(([r, c]) => {
+                avgX += c;
+                avgY += r;
+            });
+            avgX = (avgX / puyosToClear.length) * BLOCK_SIZE + BLOCK_SIZE / 2;
+            avgY = (avgY / puyosToClear.length) * BLOCK_SIZE + BLOCK_SIZE / 2;
+
+            explosionEffect.active = true;
+            explosionEffect.x = avgX;
+            explosionEffect.y = avgY;
+            explosionEffect.radius = 0;
+            explosionEffect.maxRadius = Math.max(canvas.width, canvas.height) * 0.7; // Cover most of the screen
+            explosionEffect.alpha = 1.0;
+            explosionEffect.color = 'rgba(255, 165, 0, 1)'; // Bright orange explosion
+            
             chainAnimation.timer = 120; // Increase animation duration for more dramatic effect
 
             // playSound('chain');
@@ -280,21 +300,39 @@ function draw() {
     } else {
         console.log('draw: currentPuyo is null or undefined.');
     }
-    drawChainText();
 
-    // Draw flash effect
-    if (flashEffect.active) {
+    // Draw and update screen pulse (before chain text)
+    if (screenPulse.active) {
         context.save();
-        context.globalAlpha = flashEffect.alpha;
-        context.fillStyle = 'white'; // White flash
+        context.globalAlpha = screenPulse.alpha;
+        context.fillStyle = screenPulse.color;
         context.fillRect(0, 0, canvas.width, canvas.height);
         context.restore();
 
-        flashEffect.alpha -= 0.05; // Fade out flash
-        if (flashEffect.alpha <= 0) {
-            flashEffect.active = false;
+        screenPulse.alpha -= 0.03; // Fade out faster
+        if (screenPulse.alpha <= 0) {
+            screenPulse.active = false;
         }
     }
+
+    // Draw and update explosion effect (before chain text)
+    if (explosionEffect.active) {
+        context.save();
+        context.globalAlpha = explosionEffect.alpha;
+        context.fillStyle = explosionEffect.color;
+        context.beginPath();
+        context.arc(explosionEffect.x, explosionEffect.y, explosionEffect.radius, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+
+        explosionEffect.radius += 15; // Expand faster
+        explosionEffect.alpha -= 0.02; // Fade out slower than radius expands
+        if (explosionEffect.alpha <= 0 || explosionEffect.radius > explosionEffect.maxRadius) {
+            explosionEffect.active = false;
+        }
+    }
+
+    drawChainText();
 }
 
 function drawNextPuyo() {

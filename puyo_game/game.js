@@ -58,7 +58,15 @@ let highScore = 0;
 let gameState = 'start'; // start, playing, checking, paused, gameover
 
 let dropCounter = 0;
-let dropInterval = 30;
+
+// 難易度調整用の定数
+const INITIAL_DROP_INTERVAL = 30;
+const MIN_DROP_INTERVAL = 5;
+const DIFFICULTY_INCREASE_SCORE_INTERVAL = 500; // 500点ごとに難易度上昇
+const DROP_INTERVAL_DECREMENT = 2; // 難易度上昇ごとに減少させる量
+
+let dropInterval = INITIAL_DROP_INTERVAL; // 初期値を定数から取得
+
 let chainAnimation = { text: '', timer: 0 };
 
 function loadHighScore() {
@@ -82,6 +90,7 @@ function initGame() {
     score = 0;
     scoreElement.textContent = score;
     chainBonusElement.classList.add('hidden'); // 追加
+    dropInterval = INITIAL_DROP_INTERVAL; // ゲーム開始時に初期化
     
     nextPuyo = createPuyoPair();
     spawnPuyo();
@@ -139,6 +148,7 @@ async function handleChains() {
         const chainBonus = Math.pow(2, chainCount);
         score += puyosToClear.length * 10 * chainBonus;
         scoreElement.textContent = score;
+        updateDifficulty(); // スコア更新後に難易度を更新
         
         // 連鎖ボーナス表示のロジックを追加
         if (chainCount > 1) {
@@ -162,6 +172,16 @@ async function handleChains() {
     gameState = 'playing';
     await sleep(300); // ここを追加
     spawnPuyo();
+}
+
+function updateDifficulty() {
+    // スコアに応じて落下速度を調整
+    const difficultyLevel = Math.floor(score / DIFFICULTY_INCREASE_SCORE_INTERVAL);
+    let newDropInterval = INITIAL_DROP_INTERVAL - (difficultyLevel * DROP_INTERVAL_DECREMENT);
+    
+    // 最小落下速度を下回らないようにする
+    dropInterval = Math.max(newDropInterval, MIN_DROP_INTERVAL);
+    console.log(`Current Score: ${score}, Difficulty Level: ${difficultyLevel}, New Drop Interval: ${dropInterval}`);
 }
 
 function findPuyosToClear() {

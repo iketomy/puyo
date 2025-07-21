@@ -62,6 +62,7 @@ let dropInterval = 30;
 let chainAnimation = { text: '', timer: 0 };
 
 let puyosFading = []; // 消去中のぷよを管理する配列
+let flashEffect = { active: false, alpha: 0 }; // フラッシュ効果
 
 function loadHighScore() {
     const savedScore = localStorage.getItem('puyoHighScore');
@@ -159,6 +160,12 @@ async function handleChains() {
             setTimeout(() => {
                 chainBonusElement.classList.add('hidden');
             }, 1500); // 1.5秒後に非表示
+
+            // Activate flash effect
+            flashEffect.active = true;
+            flashEffect.alpha = 0.8; // Start with a strong flash
+            chainAnimation.timer = 120; // Increase animation duration for more dramatic effect
+
             // playSound('chain');
         } else { 
             chainBonusElement.classList.add('hidden'); // 1連鎖の場合は非表示を維持
@@ -274,6 +281,20 @@ function draw() {
         console.log('draw: currentPuyo is null or undefined.');
     }
     drawChainText();
+
+    // Draw flash effect
+    if (flashEffect.active) {
+        context.save();
+        context.globalAlpha = flashEffect.alpha;
+        context.fillStyle = 'white'; // White flash
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.restore();
+
+        flashEffect.alpha -= 0.05; // Fade out flash
+        if (flashEffect.alpha <= 0) {
+            flashEffect.active = false;
+        }
+    }
 }
 
 function drawNextPuyo() {
@@ -327,16 +348,37 @@ function drawPuyo(ctx, x, y, colorIndex, size, alpha = 1.0) { // alpha引数を�
 
 function drawChainText() {
     if (chainAnimation.timer > 0) {
-        context.font = 'bold 48px "Press Start 2P" '; // フォントをレトロゲーム風に
+        context.font = 'bold 72px "Press Start 2P" '; // Larger font
         context.textAlign = 'center';
-        context.fillStyle = `rgba(255, 193, 7, ${chainAnimation.timer / 90})`; // フェードアウト
-        context.strokeStyle = `rgba(0, 0, 0, ${chainAnimation.timer / 90})`;
-        context.lineWidth = 6; // 線を太く
+        
+        // Make text color more vibrant and fade out
+        const textAlpha = chainAnimation.timer / 120; // Use new timer duration
+        context.fillStyle = `rgba(255, 255, 0, ${textAlpha})`; // Bright yellow
+        context.strokeStyle = `rgba(255, 0, 0, ${textAlpha})`; // Red outline
+        context.lineWidth = 8; // Thicker outline
+
         const x = canvas.width / 2, y = canvas.height / 2;
-        const scale = 1 + Math.sin(Math.PI * (1 - chainAnimation.timer / 90)) * 0.5; // 拡大率を大きく
+        // More dramatic scaling: start smaller, grow larger, then shrink
+        const initialScale = 0.5;
+        const maxScale = 2.0;
+        const animationProgress = 1 - (chainAnimation.timer / 120); // 0 to 1
+        let scale;
+        if (animationProgress < 0.5) {
+            // Grow phase
+            scale = initialScale + (maxScale - initialScale) * (animationProgress * 2);
+        } else {
+            // Shrink phase
+            scale = maxScale - (maxScale - initialScale) * ((animationProgress - 0.5) * 2);
+        }
+        
         context.save();
         context.translate(x, y);
         context.scale(scale, scale);
+        context.shadowColor = `rgba(255, 255, 0, ${textAlpha})`; // Yellow glow
+        context.shadowBlur = 20;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+
         context.strokeText(chainAnimation.text, 0, 0);
         context.fillText(chainAnimation.text, 0, 0);
         context.restore();
@@ -399,7 +441,7 @@ document.addEventListener('keydown', (e) => {
             gameState = 'paused';
             // stopSound('bgm'); // ポーズ時にBGM停止
         } else if (gameState === 'paused') {
-            gameState = 'playing';
+            gameState = 'playing
             // playSound('bgm'); // ポーズ解除時にBGM再開
         }
         updateOverlayVisibility(); // ポーズ状態変更時にオーバーレイを更新

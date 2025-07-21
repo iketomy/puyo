@@ -61,6 +61,8 @@ let dropCounter = 0;
 let dropInterval = 30;
 let chainAnimation = { text: '', timer: 0 };
 
+let puyosFading = []; // 消去中のぷよを管理する配列
+
 function loadHighScore() {
     const savedScore = localStorage.getItem('puyoHighScore');
     highScore = savedScore ? parseInt(savedScore, 10) : 0;
@@ -136,6 +138,16 @@ async function handleChains() {
     while (true) {
         const puyosToClear = findPuyosToClear();
         if (puyosToClear.length === 0) break;
+
+        // 消去対象のぷよをフェードアウトリストに追加
+        puyosFading = puyosToClear.map(([r, c]) => ({
+            x: c,
+            y: r,
+            color: field[r][c],
+            alpha: 1.0, // 初期透明度
+            fadeSpeed: 0.1 // フェードアウト速度
+        }));
+
         const chainBonus = Math.pow(2, chainCount);
         score += puyosToClear.length * 10 * chainBonus;
         scoreElement.textContent = score;
@@ -154,7 +166,9 @@ async function handleChains() {
         }
 
         clearPuyos(puyosToClear);
-        draw(); await sleep(300);
+        draw(); // フェードアウト開始時の描画
+        await sleep(300); // フェードアウトアニメーションの時間
+
         applyGravity();
         draw(); await sleep(300);
         chainCount++;
@@ -189,7 +203,11 @@ function findPuyosToClear() {
     return toClear;
 }
 
-function clearPuyos(puyosToClear) { puyosToClear.forEach(([r, c]) => { field[r][c] = 0; }); }
+function clearPuyos(puyosToClear) {
+    puyosToClear.forEach(([r, c]) => {
+        field[r][c] = 0; // フィールドからはすぐに消す
+    });
+}
 
 function applyGravity() {
     for (let c = 0; c < COLS; c++) {
@@ -237,6 +255,17 @@ function draw() {
             if (field[r][c] > 0) drawPuyo(context, c, r, field[r][c], BLOCK_SIZE);
         }
     }
+
+    // フェードアウト中のぷよを描画
+    puyosFading = puyosFading.filter(puyo => {
+        puyo.alpha -= puyo.fadeSpeed;
+        if (puyo.alpha > 0) {
+            drawPuyo(context, puyo.x, puyo.y, puyo.color, BLOCK_SIZE, puyo.alpha);
+            return true;
+        }
+        return false;
+    });
+
     if (currentPuyo) {
         console.log('draw: Drawing currentPuyo at y=' + currentPuyo.y + ', child.y=' + currentPuyo.child.y);
         drawPuyo(context, currentPuyo.x, currentPuyo.y, currentPuyo.color, BLOCK_SIZE);
@@ -255,7 +284,7 @@ function drawNextPuyo() {
     }
 }
 
-function drawPuyo(ctx, x, y, colorIndex, size) {
+function drawPuyo(ctx, x, y, colorIndex, size, alpha = 1.0) { // alpha引数を追加
     console.log('drawPuyo called for x=' + x + ', y=' + y + ', color=' + colorIndex);
     const gradientColors = PUYO_GRADIENT_COLORS[colorIndex];
     if (!gradientColors) {
@@ -292,6 +321,8 @@ function drawPuyo(ctx, x, y, colorIndex, size) {
     ctx.beginPath();
     ctx.arc(centerX, centerY + radius * 0.2, radius * 0.2, 0, Math.PI, false);
     ctx.stroke();
+
+    ctx.globalAlpha = 1.0; // 透明度をリセット
 }
 
 function drawChainText() {

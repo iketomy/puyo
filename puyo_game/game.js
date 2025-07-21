@@ -7,6 +7,7 @@ const restartButton = document.getElementById('restart-button');
 const startScreen = document.getElementById('start-screen');
 const pauseScreen = document.getElementById('pause-screen');
 const chainBonusElement = document.getElementById('chain-bonus'); // 追加
+const versionDisplayElement = document.getElementById('version-display'); // 追加
 
 const COLS = 6;
 const ROWS = 12;
@@ -69,6 +70,10 @@ let dropInterval = INITIAL_DROP_INTERVAL; // 初期値を定数から取得
 
 let chainAnimation = { text: '', timer: 0 };
 
+let puyosFading = []; // 消去中のぷよを管理する配列
+let screenPulse = { active: false, alpha: 0, color: 'rgba(255, 255, 0, 0)' }; // 画面フラッシュ効果
+let explosionEffect = { active: false, x: 0, y: 0, radius: 0, maxRadius: 0, alpha: 0, color: 'rgba(255, 165, 0, 0)' }; // 爆発効果
+
 function loadHighScore() {
     const savedScore = localStorage.getItem('puyoHighScore');
     highScore = savedScore ? parseInt(savedScore, 10) : 0;
@@ -86,6 +91,7 @@ function createPuyoPair() {
 }
 
 function initGame() {
+    console.log('initGame called.');
     for (let r = 0; r < ROWS; r++) field[r] = Array(COLS).fill(0);
     score = 0;
     scoreElement.textContent = score;
@@ -94,11 +100,14 @@ function initGame() {
     
     nextPuyo = createPuyoPair();
     spawnPuyo();
+    console.log('initGame finished. currentPuyo after spawn:', currentPuyo);
 }
 
 function startGame() {
+    console.log('startGame called. Current gameState:', gameState);
     initGame();
     gameState = 'playing';
+    console.log('gameState set to playing. currentPuyo:', currentPuyo);
     updateOverlayVisibility();
     // playSound('bgm'); // ゲーム開始時にBGM再生
     // gameLoopはDOMContentLoadedで既に開始されているため、ここでは呼び出さない
@@ -111,10 +120,12 @@ function spawnPuyo() {
     drawNextPuyo();
     if (checkCollision(currentPuyo, 0, 0)) {
         gameState = 'gameover';
-        console.log('spawnPuyo: Game Over on spawn!');
+        console.log('spawnPuyo: Game Over on spawn! Setting gameState to gameover.');
         // playSound('gameover');
         // stopSound('bgm'); // ゲームオーバー時にBGM停止
         saveHighScore();
+    } else {
+        console.log('spawnPuyo: No immediate collision. Game should proceed.');
     }
 }
 
@@ -145,6 +156,16 @@ async function handleChains() {
     while (true) {
         const puyosToClear = findPuyosToClear();
         if (puyosToClear.length === 0) break;
+
+        // 消去対象のぷよをフェードアウトリストに追加
+        puyosFading = puyosToClear.map(([r, c]) => ({
+            x: c,
+            y: r,
+            color: field[r][c],
+            alpha: 1.0, // 初期透明度
+            fadeSpeed: 0.1 // フェードアウト速度
+        }));
+
         const chainBonus = Math.pow(2, chainCount);
         score += puyosToClear.length * 10 * chainBonus;
         scoreElement.textContent = score;
@@ -157,6 +178,31 @@ async function handleChains() {
             setTimeout(() => {
                 chainBonusElement.classList.add('hidden');
             }, 1500); // 1.5秒後に非表示
+
+            // Activate screen pulse
+            screenPulse.active = true;
+            screenPulse.alpha = 1.0; // Start with full opacity
+            screenPulse.color = 'rgba(255, 100, 0, 0.8)'; // More intense orange-red pulse
+
+            // Activate explosion effect
+            let avgX = 0, avgY = 0;
+            puyosToClear.forEach(([r, c]) => {
+                avgX += c;
+                avgY += r;
+            });
+            avgX = (avgX / puyosToClear.length) * BLOCK_SIZE + BLOCK_SIZE / 2;
+            avgY = (avgY / puyosToClear.length) * BLOCK_SIZE + BLOCK_SIZE / 2;
+
+            explosionEffect.active = true;
+            explosionEffect.x = avgX;
+            explosionEffect.y = avgY;
+            explosionEffect.radius = 0;
+            explosionEffect.maxRadius = Math.max(canvas.width, canvas.height) * 1.2; // Ensure it covers the whole screen
+            explosionEffect.alpha = 1.0;
+            explosionEffect.color = 'rgba(255, 60, 0, 1)'; // Fiery red-orange explosion
+            
+            chainAnimation.timer = 120; // Increase animation duration for more dramatic effect
+
             // playSound('chain');
         } else { 
             chainBonusElement.classList.add('hidden'); // 1連鎖の場合は非表示を維持
@@ -164,7 +210,9 @@ async function handleChains() {
         }
 
         clearPuyos(puyosToClear);
-        draw(); await sleep(300);
+        draw(); // フェードアウト開始時の描画
+        await sleep(300); // フェードアウトアニメーションの時間
+
         applyGravity();
         draw(); await sleep(300);
         chainCount++;
@@ -209,7 +257,11 @@ function findPuyosToClear() {
     return toClear;
 }
 
-function clearPuyos(puyosToClear) { puyosToClear.forEach(([r, c]) => { field[r][c] = 0; }); }
+function clearPuyos(puyosToClear) {
+    puyosToClear.forEach(([r, c]) => {
+        field[r][c] = 0; // フィールドからはすぐに消す
+    });
+}
 
 function applyGravity() {
     for (let c = 0; c < COLS; c++) {
@@ -237,7 +289,9 @@ function gameLoop() {
         }
     } else if (gameState === 'gameover') {
         drawGameOver();
-    } 
+    } else {
+        console.log('gameLoop: Not in playing state or currentPuyo is null. gameState:', gameState, 'currentPuyo:', currentPuyo);
+    }
 
     // 次のフレームを要求
     gameLoop.animationFrameId = requestAnimationFrame(gameLoop);
@@ -257,6 +311,17 @@ function draw() {
             if (field[r][c] > 0) drawPuyo(context, c, r, field[r][c], BLOCK_SIZE);
         }
     }
+
+    // フェードアウト中のぷよを描画
+    puyosFading = puyosFading.filter(puyo => {
+        puyo.alpha -= puyo.fadeSpeed;
+        if (puyo.alpha > 0) {
+            drawPuyo(context, puyo.x, puyo.y, puyo.color, BLOCK_SIZE, puyo.alpha);
+            return true;
+        }
+        return false;
+    });
+
     if (currentPuyo) {
         console.log('draw: Drawing currentPuyo at y=' + currentPuyo.y + ', child.y=' + currentPuyo.child.y);
         drawPuyo(context, currentPuyo.x, currentPuyo.y, currentPuyo.color, BLOCK_SIZE);
@@ -264,6 +329,38 @@ function draw() {
     } else {
         console.log('draw: currentPuyo is null or undefined.');
     }
+
+    // Draw and update screen pulse (before chain text)
+    if (screenPulse.active) {
+        context.save();
+        context.globalAlpha = screenPulse.alpha;
+        context.fillStyle = screenPulse.color;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.restore();
+
+        screenPulse.alpha -= 0.02; // Fade out slower (lasts 50 frames)
+        if (screenPulse.alpha <= 0) {
+            screenPulse.active = false;
+        }
+    }
+
+    // Draw and update explosion effect (before chain text)
+    if (explosionEffect.active) {
+        context.save();
+        context.globalAlpha = explosionEffect.alpha;
+        context.fillStyle = explosionEffect.color;
+        context.beginPath();
+        context.arc(explosionEffect.x, explosionEffect.y, explosionEffect.radius, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+
+        explosionEffect.radius += 25; // Expand much faster
+        explosionEffect.alpha -= 0.015; // Fade out slower than radius expands (lasts ~66 frames)
+        if (explosionEffect.alpha <= 0 || explosionEffect.radius > explosionEffect.maxRadius) {
+            explosionEffect.active = false;
+        }
+    }
+
     drawChainText();
 }
 
@@ -275,7 +372,7 @@ function drawNextPuyo() {
     }
 }
 
-function drawPuyo(ctx, x, y, colorIndex, size) {
+function drawPuyo(ctx, x, y, colorIndex, size, alpha = 1.0) { // alpha引数を追加
     console.log('drawPuyo called for x=' + x + ', y=' + y + ', color=' + colorIndex);
     const gradientColors = PUYO_GRADIENT_COLORS[colorIndex];
     if (!gradientColors) {
@@ -312,20 +409,43 @@ function drawPuyo(ctx, x, y, colorIndex, size) {
     ctx.beginPath();
     ctx.arc(centerX, centerY + radius * 0.2, radius * 0.2, 0, Math.PI, false);
     ctx.stroke();
+
+    ctx.globalAlpha = 1.0; // 透明度をリセット
 }
 
 function drawChainText() {
     if (chainAnimation.timer > 0) {
-        context.font = 'bold 48px sans-serif';
+        context.font = 'bold 72px "Press Start 2P" '; // Larger font
         context.textAlign = 'center';
-        context.fillStyle = '#ffc107';
-        context.strokeStyle = 'black';
-        context.lineWidth = 4;
+        
+        // Make text color more vibrant and fade out
+        const textAlpha = chainAnimation.timer / 120; // Use new timer duration
+        context.fillStyle = `rgba(255, 255, 0, ${textAlpha})`; // Bright yellow
+        context.strokeStyle = `rgba(255, 0, 0, ${textAlpha})`; // Red outline
+        context.lineWidth = 8; // Thicker outline
+
         const x = canvas.width / 2, y = canvas.height / 2;
-        const scale = 1 + Math.sin(Math.PI * (1 - chainAnimation.timer / 90)) * 0.2;
+        // More dramatic scaling: start smaller, grow larger, then shrink
+        const initialScale = 0.5;
+        const maxScale = 2.0;
+        const animationProgress = 1 - (chainAnimation.timer / 120); // 0 to 1
+        let scale;
+        if (animationProgress < 0.5) {
+            // Grow phase
+            scale = initialScale + (maxScale - initialScale) * (animationProgress * 2);
+        } else {
+            // Shrink phase
+            scale = maxScale - (maxScale - initialScale) * ((animationProgress - 0.5) * 2);
+        }
+        
         context.save();
         context.translate(x, y);
         context.scale(scale, scale);
+        context.shadowColor = `rgba(255, 255, 0, ${textAlpha})`; // Yellow glow
+        context.shadowBlur = 20;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+
         context.strokeText(chainAnimation.text, 0, 0);
         context.fillText(chainAnimation.text, 0, 0);
         context.restore();
@@ -364,6 +484,9 @@ function updateOverlayVisibility() {
     if (gameState === 'start') {
         startScreen.classList.remove('hidden');
         updateStartScreenContent(); // スタート画面の内容を更新
+        if (versionDisplayElement) { // 追加
+            versionDisplayElement.textContent = "Visual Enhancements v2.0"; // 追加
+        }
     } else if (gameState === 'paused') {
         pauseScreen.classList.remove('hidden');
     } else if (gameState === 'gameover') {
@@ -388,7 +511,7 @@ document.addEventListener('keydown', (e) => {
             gameState = 'paused';
             // stopSound('bgm'); // ポーズ時にBGM停止
         } else if (gameState === 'paused') {
-            gameState = 'playing';
+            gameState = 'playing'; // 修正: 閉じクォーテーションを追加
             // playSound('bgm'); // ポーズ解除時にBGM再開
         }
         updateOverlayVisibility(); // ポーズ状態変更時にオーバーレイを更新
